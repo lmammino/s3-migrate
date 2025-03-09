@@ -25,11 +25,16 @@ This tool can be useful in the following scenarios:
 
 ## Features ✨
 
-- Supports different AWS accounts, regions, and even S3-compatible services
-- Uses Node.js streams for efficient transfers
+- Supports different AWS accounts, regions, and even S3-compatible services (it
+  uses the AWS SDK under the hood but with the right configuration it should
+  theoretically work with any S3-compatible service such as DigitalOcean Spaces,
+  MinIO, Cloudflare R2, Backblaze B2, etc.)
+- Uses Node.js streams for efficient transfers (Data is transfered directly from
+  the source to the destination without buffering the entire object in memory)
 - Allows stopping and resuming with a local SQLite database
 - Graceful shutdown on Ctrl+C
-- Configurable concurrency level for optimized performance
+- Configurable concurrency level and chunk size for memory / performance tuning
+- Progress bar and ETA for the copy process
 
 ## Installation 📦
 

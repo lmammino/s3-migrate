@@ -30,6 +30,7 @@
     "@biomejs/biome": "1.9.4",
     "@types/cli-progress": "^3.11.6",
     "@types/node": "^22.13.10",
+    "commitlint": "^19.8.0",
     "lefthook": "^1.11.3",
     "release-please": "^16.18.0",
     "tsx": "^4.19.3",
