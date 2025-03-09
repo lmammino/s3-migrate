@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["coverage/", "node_modules/", "dist/"]
+    "ignore": ["coverage/", "node_modules/", "dist/", "package.json"]
   },
   "formatter": {
     "enabled": true,
