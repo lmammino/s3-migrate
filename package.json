@@ -1,0 +1,23 @@
+{
+    "name": "s3-migrator-cli",
+    "version": "1.0.0",
+    "description": "A CLI tool for migrating objects between S3-compatible storage buckets with resumable state tracking.",
+    "main": "dist/index.js",
+    "scripts": {
+      "build": "tsc",
+      "start": "node dist/index.js"
+    },
+    "dependencies": {
+      "@aws-sdk/client-s3": "^3.500.0",
+      "sqlite3": "^5.1.6",
+      "commander": "^10.0.1"
+    },
+    "devDependencies": {
+      "typescript": "^5.2.2",
+      "ts-node": "^10.9.2"
+    },
+    "bin": {
+      "s3-migrator": "dist/index.js"
+    },
+    "license": "MIT"
+  }  
