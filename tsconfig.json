@@ -14,12 +14,16 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     /* Node Stuff */
-    "allowImportingTsExtensions": true,
+    // "allowImportingTsExtensions": true,
     // "rewriteRelativeImportExtensions": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "noEmit": true,
+    "sourceMap": true,
+    "declaration": true,
+    // "noEmit": true,
     /* If your code doesn't run in the DOM: */
-    "lib": ["es2024"]
+    "lib": ["es2024"],
+    "outDir": "dist",
+    "rootDir": "src"
   }
 }

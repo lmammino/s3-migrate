@@ -1,20 +1,22 @@
-import {
-  ListObjectsV2Command,
-  GetObjectCommand,
-  PutObjectCommand,
-} from '@aws-sdk/client-s3'
-import { type Database, open } from 'sqlite'
-import sqlite3 from 'sqlite3'
-import { Command } from 'commander'
-import { ProgressBar } from '@opentf/cli-pbar'
-import dotenv from 'dotenv'
-import prettyBytes from 'pretty-bytes'
-import { createS3Client } from './client.ts'
+#! /usr/bin/env node
+
 // @ts-ignore
 import { compose } from 'node:stream'
-import { ChunkSizeTransform } from './chunkSize.ts'
+import {
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3'
+import { ProgressBar } from '@opentf/cli-pbar'
+import { Command } from 'commander'
+import 'dotenv/config'
+import prettyBytes from 'pretty-bytes'
+import { type Database, open } from 'sqlite'
+import sqlite3 from 'sqlite3'
+import pkg from '../package.json' with { type: 'json' }
+import { ChunkSizeTransform } from './chunkSize.js'
+import { createS3Client } from './client.js'
 
-dotenv.config()
 const program = new Command()
 let db: Database
 let isShuttingDown = false
@@ -26,7 +28,11 @@ async function openDatabase(stateFile: string) {
   })
 }
 
-async function catalogObjects(bucketName: string, stateFile: string) {
+async function catalogObjects(
+  bucketName: string,
+  stateFile: string,
+  prefix?: string,
+) {
   const client = createS3Client('SRC_')
   db = await openDatabase(stateFile)
   await db.exec(
@@ -38,6 +44,7 @@ async function catalogObjects(bucketName: string, stateFile: string) {
     const command = new ListObjectsV2Command({
       Bucket: bucketName,
       ContinuationToken,
+      Prefix: prefix,
     })
     const response = await client.send(command)
 
@@ -62,6 +69,7 @@ async function copyObjects(
   destBucketName: string,
   stateFile: string,
   concurrency: number,
+  chunkSizeBytes: number,
 ) {
   db = await openDatabase(stateFile)
   const srcS3 = createS3Client('SRC_')
@@ -99,7 +107,10 @@ async function copyObjects(
       })
       const response = await srcS3.send(getCommand)
 
-      const dataStream = compose(response.Body, new ChunkSizeTransform())
+      const dataStream = compose(
+        response.Body,
+        new ChunkSizeTransform(chunkSizeBytes),
+      )
 
       const putCommand = new PutObjectCommand({
         Bucket: destBucketName,
@@ -144,8 +155,9 @@ program
   .command('catalog')
   .requiredOption('--src-bucket-name <name>', 'Source bucket name')
   .requiredOption('--state-file <path>', 'Path to SQLite state file')
-  .action(({ srcBucketName, stateFile }) =>
-    catalogObjects(srcBucketName, stateFile),
+  .option('--prefix <prefix>', 'Prefix to filter objects by')
+  .action(({ srcBucketName, stateFile, prefix }) =>
+    catalogObjects(srcBucketName, stateFile, prefix),
   )
 
 program
@@ -154,13 +166,26 @@ program
   .requiredOption('--dest-bucket-name <name>', 'Destination bucket name')
   .requiredOption('--state-file <path>', 'Path to SQLite state file')
   .option('--concurrency <number>', 'Max concurrent copies', '8')
-  .action(({ srcBucketName, destBucketName, stateFile, concurrency }) =>
-    copyObjects(
+  .option(
+    '--chunk-size-bytes <number>',
+    'Size of each chunk in bytes',
+    '2097152',
+  )
+  .action(
+    ({
       srcBucketName,
       destBucketName,
       stateFile,
-      Number.parseInt(concurrency),
-    ),
+      concurrency,
+      chunkSizeBytes,
+    }) =>
+      copyObjects(
+        srcBucketName,
+        destBucketName,
+        stateFile,
+        Number.parseInt(concurrency),
+        Number.parseInt(chunkSizeBytes),
+      ),
   )
 
-program.parse(process.argv)
+program.version(pkg.version).parse(process.argv)
