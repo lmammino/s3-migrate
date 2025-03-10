@@ -1,6 +1,6 @@
 {
   "name": "s3-migrate",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A CLI tool for migrating objects between S3-compatible storage buckets with resumable state tracking.",
   "repository": "https://github.com/lmammino/s3-migrate",
   "keywords": [
