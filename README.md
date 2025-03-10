@@ -15,6 +15,10 @@ This tool can be useful in the following scenarios:
 - You want to migrate objects from an S3-compatible service to another, such as
   from DigitalOcean Spaces to AWS S3 or vice versa.
 
+> [!NOTE]\
+> This project is (currently) intended for a one-off migration, not to keep 2
+> buckets in sync.
+
 > [!WARNING]\
 > The **experimental™️** nature of this project is to be taken very seriously.
 > This is still a new project which has been tested only against a limited
@@ -144,7 +148,25 @@ This command transfers uncopied objects and it will display a progress bar
 indicating the amount of objects copied and the total number of bytes
 transferred.
 
-#### Performance Tuning ⚙️
+## Graceful Shutdown 🛑
+
+Press `Ctrl+C` during the copy process to stop it safely. Any file copy in
+flight will be completed before the process exits. The state file will be
+updated with the progress made so far.
+
+> [!NOTE]\
+> Depending on the size of the objects being copied, it might take a few seconds
+> before the process exits. Please be patient.
+
+Running the command again will resume from where it left off.
+
+## Performance Tuning ⚙️
+
+Here are some things you can do to try to improve the transfer performance in
+case you are transferring a large number of objects and/or you are dealing with
+large objects.
+
+### Tweak Concurrency ⚡️
 
 You can adjust the concurrency level to optimize the performance of the copy
 process. By default, the tool uses 8 concurrent requests. You can change this by
@@ -156,6 +178,8 @@ s3-migrate copy --src-bucket-name my-source-bucket --dest-bucket-name my-dest-bu
 
 You can experiment with different values to find the optimal concurrency level
 for your use case.
+
+### Tweak Chunk size 🍔
 
 You can also configure the chunk size for each request using the
 `--chunk-size-bytes` option. The default value is 2MB:
@@ -169,10 +193,36 @@ usage on the client side. A larger chunk size means fewer requests but more
 memory usage. You can calculate an indicative memory usage by multiplying the
 chunk size by the concurrency level.
 
-#### Graceful Shutdown 🛑
+### Run Multiple Concurrent processes 🖥️⚡️🖥️⚡️
 
-Press `Ctrl+C` during the copy process to stop it safely. Running the command
-again will resume from where it left off.
+You can run multiple concurrent versions of this tool, even on different
+machines, by using different prefixes and a different state file for every
+prefix. This allows you to parallelize the migration process and use more
+networking bandwidth and CPU to speed up the migration.
+
+Here's an example of how you might generate multiple state files using different
+prefixes as in the following example:
+
+```sh
+s3-migrate catalog --src-bucket-name my-source-bucket --state-file migration-a.db --prefix "a" # in one shell / machine
+s3-migrate catalog --src-bucket-name my-source-bucket --state-file migration-b.db --prefix "b" # in another shell / machine
+```
+
+Then you can
+
+```sh
+s3-migrate copy --src-bucket-name my-source-bucket --dest-bucket-name my-dest-bucket --state-file migration-a.db # in one shell / machine
+s3-migrate copy --src-bucket-name my-source-bucket --dest-bucket-name my-dest-bucket --state-file migration-b.db # in another shell / machine
+```
+
+By using different prefixes and state files, you can distribute the workload
+across multiple instances of the tool, potentially speeding up the migration
+process. Note that you might still be subject to rate limits imposed by the
+storage providers you are reading from or copying to.
+
+Also note that finding a good set of prefixes depends on how you organised your
+source data. The trick is to try to distribute the workload evenly across the
+prefixes.
 
 ## Contributing 🤝
 
