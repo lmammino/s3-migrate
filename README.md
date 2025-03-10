@@ -148,6 +148,21 @@ This command transfers uncopied objects and it will display a progress bar
 indicating the amount of objects copied and the total number of bytes
 transferred.
 
+#### Sorting Options
+
+You can sort the objects to be copied using the `--sort-by` and `--sort-order`
+options. The `--sort-by` option accepts the following values: `key`, `size`,
+`etag`, `last_modified`. The `--sort-order` option accepts `asc` or `desc`.
+
+This allows you, for example, to prioritize files that have been modified more
+recently or smaller or bigger files. In the following example we sort by
+`last_modified` in descending order, to upload the most recently modified files
+first:
+
+```sh
+s3-migrate copy --src-bucket-name my-source-bucket --dest-bucket-name my-dest-bucket --state-file migration.db --sort-by last_modified --sort-order desc
+```
+
 ## Graceful Shutdown 🛑
 
 Press `Ctrl+C` during the copy process to stop it safely. Any file copy in
