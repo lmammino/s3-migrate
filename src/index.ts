@@ -8,7 +8,7 @@ import {
   PutObjectCommand,
 } from '@aws-sdk/client-s3'
 import { ProgressBar } from '@opentf/cli-pbar'
-import { Command } from 'commander'
+import { Command, Option } from 'commander'
 import 'dotenv/config'
 import prettyBytes from 'pretty-bytes'
 import { type Database, open } from 'sqlite'
@@ -36,7 +36,7 @@ async function catalogObjects(
   const client = createS3Client('SRC_')
   db = await openDatabase(stateFile)
   await db.exec(
-    'CREATE TABLE IF NOT EXISTS objects (key TEXT PRIMARY KEY, size INTEGER, copied INTEGER DEFAULT 0)',
+    'CREATE TABLE IF NOT EXISTS objects (key TEXT PRIMARY KEY, size INTEGER, etag TEXT, last_modified TEXT, copied INTEGER DEFAULT 0)',
   )
   let ContinuationToken: string | undefined
 
@@ -45,15 +45,18 @@ async function catalogObjects(
       Bucket: bucketName,
       ContinuationToken,
       Prefix: prefix,
+      MaxKeys: 1000,
     })
     const response = await client.send(command)
 
     if (response.Contents) {
       for (const obj of response.Contents) {
         await db.run(
-          'INSERT OR IGNORE INTO objects (key, size, copied) VALUES (?, ?, 0)',
+          'INSERT OR IGNORE INTO objects (key, size, etag, last_modified, copied) VALUES (?, ?, ?, ?, 0)',
           obj.Key,
           obj.Size,
+          obj.ETag,
+          obj.LastModified?.toISOString(),
         )
       }
     }
@@ -70,6 +73,8 @@ async function copyObjects(
   stateFile: string,
   concurrency: number,
   chunkSizeBytes: number,
+  sortBy?: string,
+  sortOrder?: string,
 ) {
   db = await openDatabase(stateFile)
   const srcS3 = createS3Client('SRC_')
@@ -94,6 +99,13 @@ async function copyObjects(
   bar.start({ total: totalObjects })
   let completed = 0
   let copiedBytes = 0
+
+  let orderByClause = ''
+
+  if (sortBy) {
+    const order = sortOrder || 'asc'
+    orderByClause = `ORDER BY ${sortBy} ${order}`
+  }
 
   async function copyObject(key: string, size: number) {
     if (isShuttingDown) {
@@ -134,7 +146,7 @@ async function copyObjects(
 
   while (!isShuttingDown) {
     const objects = await db.all(
-      'SELECT key, size FROM objects WHERE copied = 0 LIMIT ?',
+      `SELECT key, size FROM objects WHERE copied = 0 ${orderByClause} LIMIT ?`,
       maxConcurrency,
     )
     if (objects.length === 0) break
@@ -171,6 +183,18 @@ program
     'Size of each chunk in bytes',
     '2097152',
   )
+  .addOption(
+    new Option(
+      '--sort-by <field>',
+      'Field to sort by (key, size, etag, last_modified)',
+    ).choices(['key', 'size', 'etag', 'last_modified']),
+  )
+  .addOption(
+    new Option('--sort-order <order>', 'Sort order (asc, desc)').choices([
+      'asc',
+      'desc',
+    ]),
+  )
   .action(
     ({
       srcBucketName,
@@ -178,6 +202,8 @@ program
       stateFile,
       concurrency,
       chunkSizeBytes,
+      sortBy,
+      sortOrder,
     }) =>
       copyObjects(
         srcBucketName,
@@ -185,6 +211,8 @@ program
         stateFile,
         Number.parseInt(concurrency),
         Number.parseInt(chunkSizeBytes),
+        sortBy,
+        sortOrder,
       ),
   )
 
