@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/lmammino/s3-migrate/compare/s3-migrate-v0.0.3...s3-migrate-v0.0.4) (2025-03-12)
+
+
+### Features
+
+* adds --checksums-when-required option ([#6](https://github.com/lmammino/s3-migrate/issues/6)) ([59fe394](https://github.com/lmammino/s3-migrate/commit/59fe394a2dd58a080eb8c024f4ff6640d7bf5f10))
+
 ## [0.0.3](https://github.com/lmammino/s3-migrate/compare/s3-migrate-v0.0.2...s3-migrate-v0.0.3) (2025-03-10)
 
 
