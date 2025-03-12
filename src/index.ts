@@ -75,10 +75,12 @@ async function copyObjects(
   chunkSizeBytes: number,
   sortBy?: string,
   sortOrder?: string,
+  checksumsWhenRequired?: boolean,
 ) {
+  const checksums = checksumsWhenRequired ? 'WHEN_REQUIRED' : 'WHEN_SUPPORTED'
   db = await openDatabase(stateFile)
-  const srcS3 = createS3Client('SRC_')
-  const destS3 = createS3Client('DEST_')
+  const srcS3 = createS3Client('SRC_', checksums)
+  const destS3 = createS3Client('DEST_', checksums)
   const maxConcurrency = Math.max(1, concurrency)
   console.log(`Using concurrency level: ${maxConcurrency}`)
 
@@ -195,6 +197,10 @@ program
       'desc',
     ]),
   )
+  .option(
+    '--checksums-when-required',
+    'Use checksums when required (can be useful if your copy fails with a `XAmzContentSHA256Mismatch` error)',
+  )
   .action(
     ({
       srcBucketName,
@@ -204,6 +210,7 @@ program
       chunkSizeBytes,
       sortBy,
       sortOrder,
+      checksumsWhenRequired,
     }) =>
       copyObjects(
         srcBucketName,
@@ -213,6 +220,7 @@ program
         Number.parseInt(chunkSizeBytes),
         sortBy,
         sortOrder,
+        checksumsWhenRequired,
       ),
   )
 
