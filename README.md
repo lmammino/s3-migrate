@@ -163,6 +163,20 @@ first:
 s3-migrate copy --src-bucket-name my-source-bucket --dest-bucket-name my-dest-bucket --state-file migration.db --sort-by last_modified --sort-order desc
 ```
 
+#### Checksum Options
+
+You can use the `--checksums-when-required` option to initialize S3 clients with
+the `checksums` options (`requestChecksumCalculation` and
+`responseChecksumValidation`) set to `'WHEN_REQUIRED'`.
+
+This can be useful if you see `XAmzContentSHA256Mismatch` errors during copy,
+especially with some specific S3-compatible services (e.g. Aruba Object
+Storage).
+
+```sh
+s3-migrate copy --src-bucket-name my-source-bucket --dest-bucket-name my-dest-bucket --state-file migration.db --checksums-when-required
+```
+
 ## Graceful Shutdown 🛑
 
 Press `Ctrl+C` during the copy process to stop it safely. Any file copy in
